@@ -5,17 +5,17 @@
 ---
 
 ## 1. Current State & Immediate Focus
-- **Current Phase:** Phase 0 — Inspection, Governance & Work Breakdown
-- **Current Task:** Finalizing baseline documentation files (`PRD.md`, `Architecture.md`, `Rules.md`, `Phases.md`, `Design.md`, `Memory.md`, `.gsd/SPEC.md`, `.gsd/ROADMAP.md`, `docs/SPEC.md`, `docs/DECISIONS.md`) and committing Phase 0.
-- **Status:** In Progress (Documentation initialized, ready to commit and unlock Phase 1).
+- **Current Phase:** Phase 3 — Gemini AI Generation Pipeline
+- **Current Task:** Integrating Gemini service adapter, multi-stage structured prompting (Outline -> Evidence Plan -> Evidence Synthesis), and asset card generators.
+- **Status:** Phase 1 and Phase 2 completed and verified with 14/14 automated tests passing and full workspace build green. Preparing Phase 3.
 
 ---
 
 ## 2. Recent Implementation Decisions & Architectural Changes
-- **Architecture Locked:** Approved npm monorepo workspaces structure with `apps/web` (React 18 + Vite + Tailwind), `apps/api` (Express + TypeScript + Mongoose), and `packages/shared` (Zod schemas, DTOs, constants).
-- **Embedded Database Strategy:** Configured Mongoose to support both external MongoDB via `MONGODB_URI` and automatic fallback to `mongodb-memory-server` in local development/tests so the project runs out of the box on any machine.
-- **Zero Answer Leakage Guarantee:** `privateSolution` is isolated in Mongoose schema with `select: false` where appropriate, excluded from public DTO mapping, and only returned upon authoritative accusation submission.
-- **Simulated Evidence Asset Engine:** Implemented high-fidelity SVG/HTML card generators for CCTV, chats, documents, and witness statements to provide an atmospheric experience without requiring expensive video generation APIs.
+- **Workspace Architecture Validated:** Successfully configured npm workspaces (`packages/shared`, `apps/api`, `apps/web`) with TypeScript, Zod, Mongoose, Vitest, and Tailwind CSS.
+- **Dual-Mode MongoDB Strategy Verified:** Tested with `mongodb-memory-server` fallback — boots dynamically without external service dependencies and successfully passed all Mongoose queries and Supertest suites.
+- **Zero-Leakage Security Confirmed:** Verified empirically in `cases.test.ts` that `GET /api/v1/cases/:id` never returns `privateSolution`, `culpritSuspectId`, or `motive` prior to accusation submission.
+- **Server-Authoritative Accusation Verified:** Confirmed `POST /api/v1/cases/:id/accusation` transitions state to `completed` and prevents duplicate accusations.
 
 ---
 

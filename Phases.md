@@ -34,31 +34,31 @@ graph LR
 ## Phase 1: Monorepo Foundation & Tooling Setup
 - **Objective:** Establish npm workspaces, TypeScript configurations, shared types package, Express API skeleton, and Vite React frontend skeleton.
 - **Tasks:**
-  - [ ] Task 1.1: Initialize root `package.json` with npm workspaces (`apps/web`, `apps/api`, `packages/shared`).
-  - [ ] Task 1.2: Scaffold `packages/shared` with base constants, shared Zod schemas, and public DTO types.
-  - [ ] Task 1.3: Scaffold `apps/api` with Express, TypeScript, CORS, Zod env validation, `/api/v1/health` endpoint, and test harness.
-  - [ ] Task 1.4: Scaffold `apps/web` with Vite, React 18, TypeScript, Tailwind CSS, Lucide icons, and AppShell layout.
-  - [ ] Task 1.5: Setup Vitest in both packages and verify build commands (`npm run build`, `npm run test`).
+  - [x] Task 1.1: Initialize root `package.json` with npm workspaces (`apps/web`, `apps/api`, `packages/shared`).
+  - [x] Task 1.2: Scaffold `packages/shared` with base constants, shared Zod schemas, and public DTO types.
+  - [x] Task 1.3: Scaffold `apps/api` with Express, TypeScript, CORS, Zod env validation, `/api/v1/health` endpoint, and test harness.
+  - [x] Task 1.4: Scaffold `apps/web` with Vite, React 18, TypeScript, Tailwind CSS, Lucide icons, and AppShell layout.
+  - [x] Task 1.5: Setup Vitest in both packages and verify build commands (`npm run build`, `npm run test`).
 - **Verification:**
   - `GET /api/v1/health` returns `200 OK` with JSON status.
   - `apps/web` builds cleanly with Tailwind styles applied.
-  - `npm test` runs and passes across all packages.
-- **Status:** Pending
+  - `npm test` runs and passes across all packages (14 tests passed).
+- **Status:** Completed
 
 ---
 
 ## Phase 2: Domain Modeling, Consistency Engine & Mock Case Generation
 - **Objective:** Build Mongoose schemas, deterministic consistency validation, DTO sanitization, and a fully functional mock generator.
 - **Tasks:**
-  - [ ] Task 2.1: Implement Mongoose `MysteryCase` schema with indexes, status transitions, and data integrity hooks.
-  - [ ] Task 2.2: Implement `MysteryConsistencyValidator` enforcing 2+ supporting clues, 1+ weakening clue, valid chronology, and unique IDs.
-  - [ ] Task 2.3: Implement `toPublicCaseDTO` and `toSolutionDTO` serializers strictly preventing secret leakage.
-  - [ ] Task 2.4: Implement mock case generation engine producing complete, solvable, high-fidelity detective cases offline.
-  - [ ] Task 2.5: Implement case CRUD API endpoints (`POST /cases`, `GET /cases/:id/status`, `GET /cases/:id`, `PATCH /cases/:id/player-state`, `GET /cases`, `DELETE /cases/:id`).
-  - [ ] Task 2.6: Supertest API integration suite validating lifecycle, guest session security, and no-leak assertions.
+  - [x] Task 2.1: Implement Mongoose `MysteryCase` schema with indexes, status transitions, and data integrity hooks.
+  - [x] Task 2.2: Implement `MysteryConsistencyValidator` enforcing 2+ supporting clues, 1+ weakening clue, valid chronology, and unique IDs.
+  - [x] Task 2.3: Implement `toPublicCaseDTO` and `toSolutionDTO` serializers strictly preventing secret leakage.
+  - [x] Task 2.4: Implement mock case generation engine producing complete, solvable, high-fidelity detective cases offline.
+  - [x] Task 2.5: Implement case CRUD API endpoints (`POST /cases`, `GET /cases/:id/status`, `GET /cases/:id`, `PATCH /cases/:id/player-state`, `GET /cases`, `DELETE /cases/:id`).
+  - [x] Task 2.6: Supertest API integration suite validating lifecycle, guest session security, and no-leak assertions.
 - **Verification:**
   - API tests verify creating, polling, retrieving, taking notes, and listing cases with zero leaked solution data.
-- **Status:** Pending
+- **Status:** Completed
 
 ---
 
