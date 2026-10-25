@@ -5,23 +5,24 @@
 ---
 
 ## 1. Current State & Immediate Focus
-- **Current Phase:** Phase 6 — Playwright E2E Verification & Production Readiness (COMPLETED)
-- **Current Task:** Full test verification passed (24 unit/integration tests + 2/2 Playwright E2E browser tests). Visual artifacts generated. Documentation and clean commits finalized.
-- **Status:** All 7 phases (Phases 0 through 6) successfully delivered, verified, and locked.
+- **Current Phase:** Production Cloud Deployment & Verified Live Release (COMPLETED)
+- **Current Task:** Full deployment to Vercel via Vercel CLI, Neon Serverless Postgres integration, Groq AI LLM inference with user-key in-browser management, and GitHub synchronization.
+- **Status:** Production live on Vercel at `https://ai-mystery-room-ten.vercel.app`, GitHub synchronized at `https://github.com/Manibhushanamk/ai-mystery-room.git`. All 26 unit/integration tests passing.
 
 ---
 
 ## 2. Recent Implementation Decisions & Architectural Changes
+- **Vercel Serverless Architecture:** Configured root serverless entry point `api/index.ts` with ESM dynamic loading and `vercel.json` rewrites for the Vite SPA frontend.
+- **Neon Serverless Postgres Database:** Integrated Neon Postgres connection pool with SSL and automated table creation (`mystery_cases` with JSONB columns). Live database connected and verified on Vercel production.
+- **Groq AI Engine & Model Progression:** Implemented `GroqService` supporting candidate model sequence (`openai/gpt-oss-120b`, `openai/gpt-oss-20b`, `llama-3.3-70b-versatile`, `llama-3.1-8b-instant`), strict JSON schema outputs, and seamless fallback to deterministic mock engine.
+- **User Custom Groq API Key & Guide:** Added collapsible Groq API key configuration in `ScenarioForm.tsx` with localStorage caching, `X-Groq-API-Key` header injection, and a direct tutorial on acquiring a free Groq key from `https://console.groq.com/keys`.
+- **Serverless Background Resilience:** Handled serverless execution suspension by proactively advancing generation in `createCase` and `getCaseStatus`.
 - **Complete Investigation Workspace:** Delivered 3-column desktop layout (`SuspectList`, `EvidenceDocket`, `TimelineView`, `NotebookView`) with responsive mobile tabs.
 - **Rich Specialized Evidence Viewers:** Implemented `ChatViewer` (encrypted messaging thread), `CameraLogViewer` (CCTV telemetry + simulated SVG snapshot), `DocumentViewer` (stamped official report), and `WitnessStatementViewer` (deposition transcript with key assertions).
 - **High-Friction Accusation UX:** Built `AccusationDialog` modal with explicit one-shot warning, followed by cited `RevealScreen` that ties together motive, method, evidence chain, and debunked red herrings.
 - **Full Client Integration:** Connected `lib/api.ts` with transparent session management, optimistic notebook/clue marking updates, and case history dashboard.
 - **Persistence & Solved Case Recovery:** Added `GET /api/v1/cases/:caseId/reveal` allowing detectives who solved a case to reload and inspect the solution breakdown without re-triggering the one-shot accusation.
-- **Playwright Test Suite:** Automated headless Chromium user journey verification with 5 visual screenshot captures stored in artifacts.
-
-- **Neon Serverless Postgres Database Adapter:** Integrated Neon Serverless Postgres via `pg` and `@neondatabase/serverless` using `CaseRepository`. When `DATABASE_URL` is set, the API automatically connects to Neon, creates the `mystery_cases` table schema, and stores cases in Neon Postgres.
-- **Groq LLM Pipeline Integration:** Implemented `GroqService` using `groq-sdk` with `llama-3.3-70b-versatile` and structured JSON output mode, providing ultra-fast mystery generation.
-- **GitHub Repository Established:** Created and pushed full codebase to GitHub repository: `https://github.com/Manibhushanamk/ai-mystery-room`.
+- **Playwright Test Suite:** Automated headless Chromium user journey verification with 6 visual screenshot captures stored in artifacts.
 
 ---
 
