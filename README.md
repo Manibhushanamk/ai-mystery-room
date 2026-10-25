@@ -2,12 +2,16 @@
 
 > An atmospheric, fair-play detective investigation engine that transforms story seeds into playable, evidence-led deduction games.
 
+🎮 **Live Web Application:** [https://ai-mystery-room-ten.vercel.app/](https://ai-mystery-room-ten.vercel.app/)  
+📡 **Live Health API:** [https://ai-mystery-room-ten.vercel.app/api/v1/health](https://ai-mystery-room-ten.vercel.app/api/v1/health)
+
+[![Live Demo](https://img.shields.io/badge/Demo-Live_on_Vercel-black?style=flat&logo=vercel)](https://ai-mystery-room-ten.vercel.app/)
+[![Neon Postgres](https://img.shields.io/badge/Database-Neon_Serverless_Postgres-00E599?style=flat&logo=postgresql)](https://neon.tech/)
+[![Groq AI](https://img.shields.io/badge/AI_Engine-Groq_Cloud-F55036?style=flat)](https://groq.com/)
 [![Node.js](https://img.shields.io/badge/Node.js-v20%2B-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-v5-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-v18-cyan.svg)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-v3-blueviolet.svg)](https://tailwindcss.com/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-emerald.svg)](https://www.mongodb.com/)
-[![Gemini](https://img.shields.io/badge/Google_Gemini-API-orange.svg)](https://ai.google.dev/)
 
 ---
 
