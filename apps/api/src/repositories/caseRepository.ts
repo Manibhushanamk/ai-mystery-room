@@ -106,10 +106,10 @@ class NeonCaseRecord implements ICaseRecord {
     this.difficulty = data.difficulty;
     this.setting = data.setting;
     this.status = data.status;
-    this.generation = typeof data.generation === 'string' ? JSON.parse(data.generation) : data.generation || {};
-    this.publicCase = typeof data.public_case === 'string' ? JSON.parse(data.public_case) : data.publicCase || { suspects: [], evidence: [], timeline: [] };
-    this.privateSolution = typeof data.private_solution === 'string' ? JSON.parse(data.private_solution) : data.privateSolution || {};
-    this.playerState = typeof data.player_state === 'string' ? JSON.parse(data.player_state) : data.playerState || { markedEvidenceIds: [], notes: [] };
+    this.generation = typeof data.generation === 'string' ? JSON.parse(data.generation) : (data.generation || {});
+    this.publicCase = typeof data.public_case === 'string' ? JSON.parse(data.public_case) : (data.public_case || data.publicCase || { suspects: [], evidence: [], timeline: [] });
+    this.privateSolution = typeof data.private_solution === 'string' ? JSON.parse(data.private_solution) : (data.private_solution || data.privateSolution || {});
+    this.playerState = typeof data.player_state === 'string' ? JSON.parse(data.player_state) : (data.player_state || data.playerState || { markedEvidenceIds: [], notes: [] });
     this.createdAt = data.created_at ? new Date(data.created_at) : new Date();
     this.updatedAt = data.updated_at ? new Date(data.updated_at) : new Date();
   }

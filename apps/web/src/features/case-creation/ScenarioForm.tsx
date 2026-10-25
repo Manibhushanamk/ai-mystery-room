@@ -8,8 +8,8 @@ import {
   type Difficulty,
   type EvidenceType,
 } from '@ai-mystery-room/shared';
-import { api } from '../../lib/api.js';
-import { Sparkles, Shield, AlertCircle, Compass } from 'lucide-react';
+import { api, getCustomGroqKey, saveCustomGroqKey } from '../../lib/api.js';
+import { Sparkles, Shield, AlertCircle, Compass, Key, ExternalLink, Check, ChevronDown, ChevronUp } from 'lucide-react';
 
 const PRESETS = [
   {
@@ -50,6 +50,17 @@ export function ScenarioForm() {
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Custom Groq API Key Management
+  const [groqKeyInput, setGroqKeyInput] = useState(getCustomGroqKey());
+  const [showGroqGuide, setShowGroqGuide] = useState(false);
+  const [groqSavedMessage, setGroqSavedMessage] = useState(false);
+
+  const handleSaveGroqKey = () => {
+    saveCustomGroqKey(groqKeyInput);
+    setGroqSavedMessage(true);
+    setTimeout(() => setGroqSavedMessage(false), 2500);
+  };
 
   const handleApplyPreset = (p: (typeof PRESETS)[0]) => {
     setScenario(p.scenario);
@@ -256,6 +267,96 @@ export function ScenarioForm() {
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* Custom Groq API Key & Guide */}
+        <div className="pt-2 border-t border-slate-800/80">
+          <div className="bg-slate-900/80 border border-slate-800 rounded-lg p-3 text-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Key className="w-3.5 h-3.5 text-amber-400" />
+                <span className="font-mono text-slate-200 font-bold">Groq AI Engine Key (Optional)</span>
+                {groqKeyInput.trim() ? (
+                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] px-2 py-0.5 rounded font-mono">
+                    Custom Key Active
+                  </span>
+                ) : (
+                  <span className="bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5 rounded font-mono">
+                    Using System Key
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGroqGuide(!showGroqGuide)}
+                className="text-amber-400/90 hover:text-amber-300 flex items-center gap-1 font-mono text-[11px]"
+              >
+                <span>How to get key?</span>
+                {showGroqGuide ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+            </div>
+
+            {showGroqGuide && (
+              <div className="mt-2.5 pt-2.5 border-t border-slate-800 text-[11px] text-slate-300 space-y-1.5 bg-slate-950/60 p-2.5 rounded border border-slate-800/50">
+                <p className="font-semibold text-amber-300">How to get your free Groq API key:</p>
+                <ol className="list-decimal list-inside space-y-1 text-slate-400">
+                  <li>
+                    Go to{' '}
+                    <a
+                      href="https://console.groq.com/keys"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-cyan-400 underline inline-flex items-center gap-0.5 hover:text-cyan-300"
+                    >
+                      console.groq.com/keys <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  </li>
+                  <li>Sign in with Google or GitHub (it takes 10 seconds).</li>
+                  <li>Click <strong>&quot;Create API Key&quot;</strong>, name it, and copy the secret key.</li>
+                  <li>Paste it into the box below and click <strong>&quot;Save Key&quot;</strong>.</li>
+                </ol>
+                <p className="text-[10px] text-slate-500 italic">
+                  Your key is stored safely in your browser and used only to generate your mystery rooms with zero latency!
+                </p>
+              </div>
+            )}
+
+            <div className="mt-2.5 flex items-center gap-2">
+              <input
+                type="password"
+                value={groqKeyInput}
+                onChange={(e) => setGroqKeyInput(e.target.value)}
+                placeholder="Paste your Groq API key: gsk_..."
+                className="flex-1 bg-[#090d16] border border-slate-700/80 rounded p-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500 font-mono"
+              />
+              <button
+                type="button"
+                onClick={handleSaveGroqKey}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded text-xs font-mono font-medium border border-slate-700 transition-colors flex items-center gap-1"
+              >
+                {groqSavedMessage ? (
+                  <>
+                    <Check className="w-3 h-3 text-emerald-400" />
+                    <span className="text-emerald-400">Saved</span>
+                  </>
+                ) : (
+                  <span>Save Key</span>
+                )}
+              </button>
+              {groqKeyInput && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGroqKeyInput('');
+                    saveCustomGroqKey('');
+                  }}
+                  className="text-slate-500 hover:text-rose-400 text-xs px-2 py-1"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

@@ -10,6 +10,19 @@ import type {
 
 const API_BASE = '/api/v1';
 const SESSION_STORAGE_KEY = 'mystery_session_id';
+const GROQ_KEY_STORAGE = 'user_groq_api_key';
+
+export function getCustomGroqKey(): string {
+  return localStorage.getItem(GROQ_KEY_STORAGE) || '';
+}
+
+export function saveCustomGroqKey(key: string): void {
+  if (key && key.trim()) {
+    localStorage.setItem(GROQ_KEY_STORAGE, key.trim());
+  } else {
+    localStorage.removeItem(GROQ_KEY_STORAGE);
+  }
+}
 
 function getSessionId(): string | null {
   return localStorage.getItem(SESSION_STORAGE_KEY);
@@ -28,6 +41,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const sessionId = getSessionId();
   if (sessionId) {
     headers.set('X-Session-ID', sessionId);
+  }
+
+  const groqKey = getCustomGroqKey();
+  if (groqKey) {
+    headers.set('X-Groq-API-Key', groqKey);
   }
 
   const response = await fetch(`${API_BASE}${path}`, {

@@ -7,7 +7,8 @@ export class CaseController {
     try {
       const ownerId = req.mysterySession!.id;
       const input = CreateCaseSchema.parse(req.body);
-      const result = await CaseService.createCase(ownerId, input);
+      const customGroqKey = (req.headers['x-groq-api-key'] as string) || (req.body as any)?.groqApiKey;
+      const result = await CaseService.createCase(ownerId, input, customGroqKey);
       res.status(202).json(result);
     } catch (err) {
       next(err);
@@ -18,7 +19,8 @@ export class CaseController {
     try {
       const ownerId = req.mysterySession!.id;
       const { caseId } = req.params;
-      const result = await CaseService.getCaseStatus(caseId, ownerId);
+      const customGroqKey = req.headers['x-groq-api-key'] as string | undefined;
+      const result = await CaseService.getCaseStatus(caseId, ownerId, customGroqKey);
       res.status(200).json(result);
     } catch (err) {
       next(err);

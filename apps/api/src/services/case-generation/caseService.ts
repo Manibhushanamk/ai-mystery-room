@@ -23,12 +23,15 @@ import type {
 } from '@ai-mystery-room/shared';
 
 export class CaseService {
+  private static activePipelines = new Set<string>();
+
   /**
    * Starts a new case generation request.
    */
   public static async createCase(
     ownerId: string,
     input: CreateCaseRequest,
+    customGroqKey?: string,
   ): Promise<CreateCaseResponse> {
     const caseDoc = await CaseRepository.create({
       ownerId,
@@ -38,177 +41,208 @@ export class CaseService {
       setting: input.setting || '',
     });
 
-    // Trigger generation asynchronously in background
-    this.runGenerationPipeline(caseDoc.id).catch((err) => {
-      console.error(`[CaseService] Background generation failed for case ${caseDoc.id}:`, err);
-    });
+    // Proactively drive generation before responding (crucial for Serverless Vercel environments)
+    try {
+      await Promise.race([
+        this.runGenerationPipeline(caseDoc.id, customGroqKey),
+        new Promise((resolve) => setTimeout(resolve, 8000)),
+      ]);
+    } catch (err) {
+      console.warn('[CaseService] Initial generation timed out or failed, polling will resume:', err);
+    }
+
+    const updated = await CaseRepository.findById(caseDoc.id);
+    const activeDoc = updated || caseDoc;
 
     return {
-      caseId: caseDoc.id,
-      status: caseDoc.status,
-      statusUrl: `/api/v1/cases/${caseDoc.id}/status`,
+      caseId: activeDoc.id,
+      status: activeDoc.status,
+      statusUrl: `/api/v1/cases/${activeDoc.id}/status`,
     };
   }
 
   /**
    * Background generation pipeline coordinating Groq AI, Gemini AI, or Mock Engine.
    */
-  public static async runGenerationPipeline(caseId: string): Promise<void> {
+  public static async runGenerationPipeline(caseId: string, customGroqKey?: string): Promise<void> {
+    if (this.activePipelines.has(caseId)) return;
     const caseDoc = await CaseRepository.findById(caseId);
-    if (!caseDoc) return;
+    if (!caseDoc || caseDoc.status === 'ready') return;
 
+    this.activePipelines.add(caseId);
     try {
-      const useGroq = (env.LLM_PROVIDER === 'groq' || env.LLM_PROVIDER === 'auto') && GroqService.isAvailable();
-      const useGemini = (env.LLM_PROVIDER === 'gemini' || env.LLM_PROVIDER === 'auto') && GeminiService.isAvailable();
+      const provider = process.env.LLM_PROVIDER || env.LLM_PROVIDER;
+      const useGroq =
+        provider !== 'mock' &&
+        ((Boolean(customGroqKey) && GroqService.isAvailable(customGroqKey)) ||
+          ((provider === 'groq' || provider === 'auto') && GroqService.isAvailable()));
+      const useGemini = provider !== 'mock' && (provider === 'gemini' || provider === 'auto') && GeminiService.isAvailable();
+
+      let aiSuccess = false;
 
       if (useGroq) {
-        console.log(`[CaseService] Launching Groq generation for case ${caseId} (model: ${env.GROQ_MODEL})`);
+        try {
+          console.log(`[CaseService] Launching Groq generation for case ${caseId}`);
 
-        // Stage 1: Generate Outline
-        caseDoc.status = 'generating_outline';
-        caseDoc.generation.stage = `Synthesizing scenario outline and canonical truth via Groq (${env.GROQ_MODEL})`;
-        caseDoc.generation.progress = 30;
-        await caseDoc.save();
+          // Stage 1: Generate Outline
+          caseDoc.status = 'generating_outline';
+          caseDoc.generation.stage = 'Synthesizing scenario outline and canonical truth via Groq';
+          caseDoc.generation.progress = 30;
+          await caseDoc.save();
 
-        const outline = await GroqService.generateOutline({
-          scenario: caseDoc.scenarioSeed,
-          genre: caseDoc.genre,
-          difficulty: caseDoc.difficulty,
-          setting: caseDoc.setting,
-        });
+          const outline = await GroqService.generateOutline(
+            {
+              scenario: caseDoc.scenarioSeed,
+              genre: caseDoc.genre,
+              difficulty: caseDoc.difficulty,
+              setting: caseDoc.setting,
+            },
+            customGroqKey,
+          );
 
-        // Stage 2: Generate Evidence
-        caseDoc.status = 'generating_evidence';
-        caseDoc.generation.stage = 'Synthesizing evidence docket and witness testimonies via Groq';
-        caseDoc.generation.progress = 65;
-        await caseDoc.save();
+          // Stage 2: Generate Evidence
+          caseDoc.status = 'generating_evidence';
+          caseDoc.generation.stage = 'Synthesizing evidence docket and witness testimonies via Groq';
+          caseDoc.generation.progress = 65;
+          await caseDoc.save();
 
-        const evidencePacket = await GroqService.generateEvidence(outline);
+          const evidencePacket = await GroqService.generateEvidence(outline, customGroqKey);
 
-        (caseDoc as any).title = outline.title;
-        caseDoc.publicCase = {
-          title: outline.title,
-          summary: outline.incidentSummary,
-          premise: outline.premise,
-          incidentSummary: outline.incidentSummary,
-          incidentTime: outline.incidentTime,
-          briefing: outline.briefing,
-          suspects: outline.suspects.map((s) => ({
-            ...s,
-            portraitAsset: EvidenceAssetService.createPlaceholder({
-              type: 'suspect portrait',
-              title: s.name,
-              description: s.role,
-            }),
-          })),
-          evidence: evidencePacket.evidence.map((e) => ({
-            ...e,
-            asset:
-              e.type === 'camera_log'
-                ? {
-                    kind: 'placeholder',
-                    url: EvidenceAssetService.createCCTVSnapshotSVG(
-                      (e.content as any)?.cameraCode || 'CAM-01',
-                      (e.content as any)?.eventTime || '22:00',
-                      (e.content as any)?.location || 'Secured Area',
-                    ),
-                    altText: `CCTV simulation frame for ${e.title}`,
-                    status: 'ready',
-                  }
-                : EvidenceAssetService.createPlaceholder({
-                    type: e.type,
-                    title: e.title,
-                    description: e.description,
-                  }),
-            fictionalLabel: 'FICTIONAL_SIMULATION',
-          })),
-          timeline: evidencePacket.publicTimeline,
-        };
+          (caseDoc as any).title = outline.title;
+          caseDoc.publicCase = {
+            title: outline.title,
+            summary: outline.incidentSummary,
+            premise: outline.premise,
+            incidentSummary: outline.incidentSummary,
+            incidentTime: outline.incidentTime,
+            briefing: outline.briefing,
+            suspects: outline.suspects.map((s) => ({
+              ...s,
+              portraitAsset: EvidenceAssetService.createPlaceholder({
+                type: 'suspect portrait',
+                title: s.name,
+                description: s.role,
+              }),
+            })),
+            evidence: evidencePacket.evidence.map((e) => ({
+              ...e,
+              asset:
+                e.type === 'camera_log'
+                  ? {
+                      kind: 'placeholder',
+                      url: EvidenceAssetService.createCCTVSnapshotSVG(
+                        (e.content as any)?.cameraCode || 'CAM-01',
+                        (e.content as any)?.eventTime || '22:00',
+                        (e.content as any)?.location || 'Secured Area',
+                      ),
+                      altText: `CCTV simulation frame for ${e.title}`,
+                      status: 'ready',
+                    }
+                  : EvidenceAssetService.createPlaceholder({
+                      type: e.type,
+                      title: e.title,
+                      description: e.description,
+                    }),
+              fictionalLabel: 'FICTIONAL_SIMULATION',
+            })),
+            timeline: evidencePacket.publicTimeline,
+          };
 
-        caseDoc.privateSolution = {
-          culpritSuspectId: outline.privateSolution.culpritSuspectId,
-          motive: outline.privateSolution.motive,
-          method: outline.privateSolution.method,
-          canonicalTimeline: outline.privateSolution.canonicalTimeline,
-          solutionExplanation: evidencePacket.solutionExplanation,
-          evidenceReasoning: evidencePacket.evidenceReasoning,
-          debunkedRedHerrings: evidencePacket.debunkedRedHerrings || [],
-        };
+          caseDoc.privateSolution = {
+            culpritSuspectId: outline.privateSolution.culpritSuspectId,
+            motive: outline.privateSolution.motive,
+            method: outline.privateSolution.method,
+            canonicalTimeline: outline.privateSolution.canonicalTimeline,
+            solutionExplanation: evidencePacket.solutionExplanation,
+            evidenceReasoning: evidencePacket.evidenceReasoning,
+            debunkedRedHerrings: evidencePacket.debunkedRedHerrings || [],
+          };
+          aiSuccess = true;
+        } catch (groqError: any) {
+          console.warn(`[CaseService] Groq generation encountered an error: ${groqError?.message}. Falling back to deterministic engine.`);
+        }
       } else if (useGemini) {
-        console.log(`[CaseService] Launching Gemini generation for case ${caseId}`);
+        try {
+          console.log(`[CaseService] Launching Gemini generation for case ${caseId}`);
 
-        // Stage 1: Generate Outline
-        caseDoc.status = 'generating_outline';
-        caseDoc.generation.stage = 'Synthesizing scenario outline and canonical truth via Gemini';
-        caseDoc.generation.progress = 30;
-        await caseDoc.save();
+          // Stage 1: Generate Outline
+          caseDoc.status = 'generating_outline';
+          caseDoc.generation.stage = 'Synthesizing scenario outline and canonical truth via Gemini';
+          caseDoc.generation.progress = 30;
+          await caseDoc.save();
 
-        const outline = await GeminiService.generateOutline({
-          scenario: caseDoc.scenarioSeed,
-          genre: caseDoc.genre,
-          difficulty: caseDoc.difficulty,
-          setting: caseDoc.setting,
-        });
+          const outline = await GeminiService.generateOutline({
+            scenario: caseDoc.scenarioSeed,
+            genre: caseDoc.genre,
+            difficulty: caseDoc.difficulty,
+            setting: caseDoc.setting,
+          });
 
-        // Stage 2: Generate Evidence
-        caseDoc.status = 'generating_evidence';
-        caseDoc.generation.stage = 'Synthesizing evidence docket and witness testimonies';
-        caseDoc.generation.progress = 65;
-        await caseDoc.save();
+          // Stage 2: Generate Evidence
+          caseDoc.status = 'generating_evidence';
+          caseDoc.generation.stage = 'Synthesizing evidence docket and witness testimonies';
+          caseDoc.generation.progress = 65;
+          await caseDoc.save();
 
-        const evidencePacket = await GeminiService.generateEvidence(outline);
+          const evidencePacket = await GeminiService.generateEvidence(outline);
 
-        (caseDoc as any).title = outline.title;
-        caseDoc.publicCase = {
-          title: outline.title,
-          summary: outline.incidentSummary,
-          premise: outline.premise,
-          incidentSummary: outline.incidentSummary,
-          incidentTime: outline.incidentTime,
-          briefing: outline.briefing,
-          suspects: outline.suspects.map((s) => ({
-            ...s,
-            portraitAsset: EvidenceAssetService.createPlaceholder({
-              type: 'suspect portrait',
-              title: s.name,
-              description: s.role,
-            }),
-          })),
-          evidence: evidencePacket.evidence.map((e) => ({
-            ...e,
-            asset:
-              e.type === 'camera_log'
-                ? {
-                    kind: 'placeholder',
-                    url: EvidenceAssetService.createCCTVSnapshotSVG(
-                      (e.content as any)?.cameraCode || 'CAM-01',
-                      (e.content as any)?.eventTime || '22:00',
-                      (e.content as any)?.location || 'Secured Area',
-                    ),
-                    altText: `CCTV simulation frame for ${e.title}`,
-                    status: 'ready',
-                  }
-                : EvidenceAssetService.createPlaceholder({
-                    type: e.type,
-                    title: e.title,
-                    description: e.description,
-                  }),
-            fictionalLabel: 'FICTIONAL_SIMULATION',
-          })),
-          timeline: evidencePacket.publicTimeline,
-        };
+          (caseDoc as any).title = outline.title;
+          caseDoc.publicCase = {
+            title: outline.title,
+            summary: outline.incidentSummary,
+            premise: outline.premise,
+            incidentSummary: outline.incidentSummary,
+            incidentTime: outline.incidentTime,
+            briefing: outline.briefing,
+            suspects: outline.suspects.map((s) => ({
+              ...s,
+              portraitAsset: EvidenceAssetService.createPlaceholder({
+                type: 'suspect portrait',
+                title: s.name,
+                description: s.role,
+              }),
+            })),
+            evidence: evidencePacket.evidence.map((e) => ({
+              ...e,
+              asset:
+                e.type === 'camera_log'
+                  ? {
+                      kind: 'placeholder',
+                      url: EvidenceAssetService.createCCTVSnapshotSVG(
+                        (e.content as any)?.cameraCode || 'CAM-01',
+                        (e.content as any)?.eventTime || '22:00',
+                        (e.content as any)?.location || 'Secured Area',
+                      ),
+                      altText: `CCTV simulation frame for ${e.title}`,
+                      status: 'ready',
+                    }
+                  : EvidenceAssetService.createPlaceholder({
+                      type: e.type,
+                      title: e.title,
+                      description: e.description,
+                    }),
+              fictionalLabel: 'FICTIONAL_SIMULATION',
+            })),
+            timeline: evidencePacket.publicTimeline,
+          };
 
-        caseDoc.privateSolution = {
-          culpritSuspectId: outline.privateSolution.culpritSuspectId,
-          motive: outline.privateSolution.motive,
-          method: outline.privateSolution.method,
-          canonicalTimeline: outline.privateSolution.canonicalTimeline,
-          solutionExplanation: evidencePacket.solutionExplanation,
-          evidenceReasoning: evidencePacket.evidenceReasoning,
-          debunkedRedHerrings: evidencePacket.debunkedRedHerrings || [],
-        };
-      } else {
-        // Fallback to high-fidelity deterministic Mock Engine
+          caseDoc.privateSolution = {
+            culpritSuspectId: outline.privateSolution.culpritSuspectId,
+            motive: outline.privateSolution.motive,
+            method: outline.privateSolution.method,
+            canonicalTimeline: outline.privateSolution.canonicalTimeline,
+            solutionExplanation: evidencePacket.solutionExplanation,
+            evidenceReasoning: evidencePacket.evidenceReasoning,
+            debunkedRedHerrings: evidencePacket.debunkedRedHerrings || [],
+          };
+          aiSuccess = true;
+        } catch (geminiError: any) {
+          console.warn(`[CaseService] Gemini generation encountered an error: ${geminiError?.message}. Falling back to deterministic engine.`);
+        }
+      }
+
+      if (!aiSuccess) {
+        // High-fidelity deterministic Mock Engine
         caseDoc.status = 'generating_outline';
         caseDoc.generation.stage = 'Synthesizing scenario outline and canonical truth';
         caseDoc.generation.progress = 30;
@@ -245,12 +279,17 @@ export class CaseService {
       });
 
       if (!validation.valid) {
-        console.error('[CaseService] Consistency validation failed:', validation.errors);
-        caseDoc.status = 'failed';
-        caseDoc.generation.stage = 'Failed consistency validation';
-        caseDoc.generation.lastErrorCode = 'CONSISTENCY_CHECK_FAILED';
-        await caseDoc.save();
-        return;
+        console.warn('[CaseService] Consistency validation failed for AI output, falling back to deterministic engine:', validation.errors);
+        const mockData = MockCaseGenerator.generate({
+          ownerId: caseDoc.ownerId,
+          scenario: caseDoc.scenarioSeed,
+          genre: caseDoc.genre,
+          difficulty: (caseDoc.difficulty as 'easy' | 'medium' | 'hard') || 'medium',
+          setting: caseDoc.setting,
+        });
+        (caseDoc as any).title = mockData.title;
+        caseDoc.publicCase = mockData.publicCase as any;
+        caseDoc.privateSolution = mockData.privateSolution as any;
       }
 
       // Stage 4: Mark Ready
@@ -266,14 +305,16 @@ export class CaseService {
       caseDoc.generation.stage = 'Internal generation error';
       caseDoc.generation.lastErrorCode = 'GENERATION_ERROR';
       await caseDoc.save();
+    } finally {
+      this.activePipelines.delete(caseId);
     }
   }
 
   /**
    * Retrieves case generation status for polling.
    */
-  public static async getCaseStatus(caseId: string, ownerId: string): Promise<CaseStatusResponse> {
-    const caseDoc = await CaseRepository.findById(caseId);
+  public static async getCaseStatus(caseId: string, ownerId: string, customGroqKey?: string): Promise<CaseStatusResponse> {
+    let caseDoc = await CaseRepository.findById(caseId);
     if (!caseDoc) {
       const error: any = new Error('Case not found');
       error.statusCode = 404;
@@ -286,6 +327,22 @@ export class CaseService {
       error.statusCode = 403;
       error.code = 'FORBIDDEN';
       throw error;
+    }
+
+    // Serverless continuation: If case is queued or actively generating, advance it
+    if (caseDoc.status === 'queued' || caseDoc.status === 'generating_outline' || caseDoc.status === 'generating_evidence') {
+      try {
+        await Promise.race([
+          this.runGenerationPipeline(caseDoc.id, customGroqKey),
+          new Promise((resolve) => setTimeout(resolve, 6000)),
+        ]);
+        const refreshed = await CaseRepository.findById(caseId);
+        if (refreshed) {
+          caseDoc = refreshed;
+        }
+      } catch (err) {
+        console.warn('[CaseService] Resumed generation during status poll failed:', err);
+      }
     }
 
     return toCaseStatusDTO(caseDoc);

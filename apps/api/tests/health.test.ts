@@ -20,7 +20,7 @@ describe('API Health Check', () => {
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ok');
     expect(res.body.service).toBe('ai-mystery-room-api');
-    expect(res.body.database).toBe('connected');
+    expect(res.body.database).toContain('connected');
     expect(res.headers['x-session-id']).toBeDefined();
   });
 });

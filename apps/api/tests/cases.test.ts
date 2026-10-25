@@ -3,12 +3,23 @@ import request from 'supertest';
 import { createApp } from '../src/app.js';
 import { connectDatabase, disconnectDatabase } from '../src/config/database.js';
 
-describe('Cases API Integration Suite', () => {
+describe('Cases API Integration Suite', { timeout: 25000 }, () => {
   let app: any;
   const ownerSessionId = 'test-session-investigator-01';
   const otherSessionId = 'test-session-unauthorized-02';
 
+  async function waitForReady(caseId: string, sessionId: string = ownerSessionId): Promise<any> {
+    for (let i = 0; i < 25; i++) {
+      const res = await request(app)
+        .get(`/api/v1/cases/${caseId}/status`)
+        .set('X-Session-ID', sessionId);
+      if (res.body.status === 'ready') return res.body;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+  }
+
   beforeAll(async () => {
+    process.env.LLM_PROVIDER = 'mock';
     await connectDatabase();
     app = createApp();
   });
@@ -80,7 +91,7 @@ describe('Cases API Integration Suite', () => {
       });
 
     const caseId = createRes.body.caseId;
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await waitForReady(caseId);
 
     const caseRes = await request(app)
       .get(`/api/v1/cases/${caseId}`)
@@ -156,7 +167,7 @@ describe('Cases API Integration Suite', () => {
       });
 
     const caseId = createRes.body.caseId;
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await waitForReady(caseId);
 
     // Submit accusation against suspect_02 (Marcus Wright - the culprit in mock case)
     const accuseRes = await request(app)
