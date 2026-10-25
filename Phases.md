@@ -24,10 +24,10 @@ graph LR
   - [x] Task 0.1: Inspect repository, verify system environment (Node v22, npm v10).
   - [x] Task 0.2: Author mandatory GSD docs (`PRD.md`, `Architecture.md`, `Rules.md`, `Phases.md`, `Design.md`, `Memory.md`).
   - [x] Task 0.3: Setup `.gsd/SPEC.md`, `.gsd/ROADMAP.md`, `docs/SPEC.md`, `docs/DECISIONS.md`.
-  - [ ] Task 0.4: Commit Phase 0 governance baseline.
+  - [x] Task 0.4: Commit Phase 0 governance baseline.
 - **Verification:**
   - Clean git status with all documentation files in place.
-- **Status:** In Progress
+- **Status:** Completed
 
 ---
 
@@ -109,11 +109,11 @@ graph LR
 ## Phase 6: Playwright E2E Verification & Production Readiness
 - **Objective:** Verify full end-to-end player journeys in headless browser, audit accessibility, and produce complete production documentation.
 - **Tasks:**
-  - [ ] Task 6.1: Write Playwright E2E test suite covering: Creation → Generation → Evidence Inspection → Note Taking → Accusation → Reveal.
-  - [ ] Task 6.2: Run Playwright tests and capture visual verification artifacts.
-  - [ ] Task 6.3: Audit WCAG 2.2 AA accessibility (keyboard navigation, ARIA attributes, color contrast).
-  - [ ] Task 6.4: Update `README.md` with complete setup instructions, architecture summary, environment variables, and run scripts.
-  - [ ] Task 6.5: Verify clean `npm run build`, `npm run lint`, and all test suites passing with zero errors.
+  - [x] Task 6.1: Write Playwright E2E test suite covering: Creation → Generation → Evidence Inspection → Note Taking → Accusation → Reveal.
+  - [x] Task 6.2: Run Playwright tests and capture visual verification artifacts.
+  - [x] Task 6.3: Audit WCAG 2.2 AA accessibility (keyboard navigation, ARIA attributes, color contrast).
+  - [x] Task 6.4: Update `README.md` with complete setup instructions, architecture summary, environment variables, and run scripts.
+  - [x] Task 6.5: Verify clean `npm run build`, `npm run lint`, and all test suites passing with zero errors.
 - **Verification:**
   - Playwright test run reports 100% passing; all unit, integration, and E2E suites green.
-- **Status:** Pending
+- **Status:** Completed

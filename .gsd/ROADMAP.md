@@ -1,6 +1,6 @@
 # AI Mystery Room — Roadmap (.gsd/ROADMAP.md)
 
-> **Status:** ACTIVE  
+> **Status:** COMPLETED
 > **Source of Truth:** `Phases.md`  
 
 ## Phases Summary
@@ -11,4 +11,4 @@
 - [x] **Phase 3:** Gemini AI Generation Pipeline (Prompt engineering, structured JSON output, coordinator, asset generator, mock & live tests)
 - [x] **Phase 4:** Detective Investigation UI & Workspace (Atmospheric noir theme, scenario form, generation progress radar, 3-column workspace, specialized evidence cards, notebook, My Cases)
 - [x] **Phase 5:** Accusation Dialog, Reveal Screen & Security Hardening (One-shot modal, server reveal, rate limiting, no-leak guarantees)
-- [ ] **Phase 6:** Playwright E2E Verification & Production Readiness (E2E browser tests, accessibility audit, final documentation)
+- [x] **Phase 6:** Playwright E2E Verification & Production Readiness (E2E browser tests, accessibility audit, final documentation)

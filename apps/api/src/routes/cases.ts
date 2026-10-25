@@ -9,6 +9,7 @@ casesRouter.get('/', CaseController.listCases);
 
 // Individual case lifecycle endpoints
 casesRouter.get('/:caseId/status', CaseController.getCaseStatus);
+casesRouter.get('/:caseId/reveal', CaseController.getCaseReveal);
 casesRouter.get('/:caseId', CaseController.getPublicCase);
 casesRouter.patch('/:caseId/player-state', CaseController.updatePlayerState);
 casesRouter.post('/:caseId/accusation', CaseController.submitAccusation);

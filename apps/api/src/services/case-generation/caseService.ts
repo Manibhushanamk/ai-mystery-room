@@ -345,6 +345,35 @@ export class CaseService {
   }
 
   /**
+   * Retrieves the solution reveal for a completed case.
+   */
+  public static async getCaseReveal(caseId: string, ownerId: string): Promise<SolutionReveal> {
+    const caseDoc = await MysteryCase.findById(caseId);
+    if (!caseDoc) {
+      const error: any = new Error('Case not found');
+      error.statusCode = 404;
+      error.code = 'CASE_NOT_FOUND';
+      throw error;
+    }
+
+    if (caseDoc.ownerId !== ownerId) {
+      const error: any = new Error('Unauthorized to view solution for this case');
+      error.statusCode = 403;
+      error.code = 'FORBIDDEN';
+      throw error;
+    }
+
+    if (caseDoc.status !== 'completed' || !caseDoc.playerState?.accusation) {
+      const error: any = new Error('Case solution is not available until accusation is submitted');
+      error.statusCode = 403;
+      error.code = 'CASE_NOT_COMPLETED';
+      throw error;
+    }
+
+    return toSolutionDTO(caseDoc, caseDoc.playerState.accusation.suspectId);
+  }
+
+  /**
    * Lists cases owned by the current session.
    */
   public static async listUserCases(

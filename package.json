@@ -9,10 +9,12 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "test:e2e": "playwright test",
     "dev:api": "npm run dev --workspace=@ai-mystery-room/api",
     "dev:web": "npm run dev --workspace=@ai-mystery-room/web"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "typescript": "^5.7.3"
   }
 }

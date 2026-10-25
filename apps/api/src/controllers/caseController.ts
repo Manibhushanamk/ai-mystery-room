@@ -60,6 +60,17 @@ export class CaseController {
     }
   }
 
+  public static async getCaseReveal(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const ownerId = req.mysterySession!.id;
+      const { caseId } = req.params;
+      const result = await CaseService.getCaseReveal(caseId, ownerId);
+      res.status(200).json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   public static async listCases(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const ownerId = req.mysterySession!.id;

@@ -74,6 +74,10 @@ export const api = {
     return request<PublicCaseResponse>(`/cases/${caseId}`);
   },
 
+  getCaseReveal(caseId: string): Promise<SolutionReveal> {
+    return request<SolutionReveal>(`/cases/${caseId}/reveal`);
+  },
+
   updatePlayerState(caseId: string, payload: UpdatePlayerStateRequest): Promise<PublicCaseResponse> {
     return request<PublicCaseResponse>(`/cases/${caseId}/player-state`, {
       method: 'PATCH',

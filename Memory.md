@@ -5,9 +5,9 @@
 ---
 
 ## 1. Current State & Immediate Focus
-- **Current Phase:** Phase 6 — Playwright E2E Verification & Production Readiness
-- **Current Task:** Writing Playwright browser E2E test suite covering the full user journey (Landing → Case Creation → Generation Radar → Evidence Inspection → Note Taking → Accusation → Reveal) and auditing documentation.
-- **Status:** Phases 1–5 completed and verified. 24/24 automated tests passing across workspaces.
+- **Current Phase:** Phase 6 — Playwright E2E Verification & Production Readiness (COMPLETED)
+- **Current Task:** Full test verification passed (24 unit/integration tests + 2/2 Playwright E2E browser tests). Visual artifacts generated. Documentation and clean commits finalized.
+- **Status:** All 7 phases (Phases 0 through 6) successfully delivered, verified, and locked.
 
 ---
 
@@ -16,6 +16,8 @@
 - **Rich Specialized Evidence Viewers:** Implemented `ChatViewer` (encrypted messaging thread), `CameraLogViewer` (CCTV telemetry + simulated SVG snapshot), `DocumentViewer` (stamped official report), and `WitnessStatementViewer` (deposition transcript with key assertions).
 - **High-Friction Accusation UX:** Built `AccusationDialog` modal with explicit one-shot warning, followed by cited `RevealScreen` that ties together motive, method, evidence chain, and debunked red herrings.
 - **Full Client Integration:** Connected `lib/api.ts` with transparent session management, optimistic notebook/clue marking updates, and case history dashboard.
+- **Persistence & Solved Case Recovery:** Added `GET /api/v1/cases/:caseId/reveal` allowing detectives who solved a case to reload and inspect the solution breakdown without re-triggering the one-shot accusation.
+- **Playwright Test Suite:** Automated headless Chromium user journey verification with 5 visual screenshot captures stored in artifacts.
 
 ---
 
@@ -24,18 +26,20 @@
 - `PRD.md` — Core requirements and user stories.
 - `Architecture.md` — Architecture diagrams, data models, and boundaries.
 - `Rules.md` — AI operational constraints and fair-play mystery rules.
-- `Phases.md` — 7-phase step-by-step roadmap.
+- `Phases.md` — 7-phase step-by-step roadmap (all 7 phases marked Completed).
 - `Design.md` — Visual system and evidence card specifications.
 - `Memory.md` — Active working context tracking.
+- `README.md` — Comprehensive production guide and setup documentation.
 
 ---
 
 ## 4. Known Blockers, Bugs, or Technical Debt
-- None currently. Environment verified with Node v22.23.3 and npm v10.9.9.
+- Zero blockers. All 24 unit/integration tests and 2 Playwright E2E browser tests pass cleanly.
+- Dual-mode database cleanly connects to live MongoDB when present or boots an in-memory replica via `mongodb-memory-server` without external dependencies.
 
 ---
 
 ## 5. Next Immediate Steps
-1. Create `.gsd/SPEC.md`, `.gsd/ROADMAP.md`, `docs/SPEC.md`, and `docs/DECISIONS.md`.
-2. Commit Phase 0 baseline with `chore(governance): initialize GSD documentation and project specification`.
-3. Advance to Phase 1: Initialize workspaces root `package.json`, `packages/shared`, `apps/api`, and `apps/web`.
+1. Final atomic git commit for Phase 6 and final project documentation.
+2. Confirm commit with `git log -1 --oneline`.
+3. Provide full completion debrief and verification walkthrough to user.

@@ -53,13 +53,12 @@ export function InvestigationWorkspace() {
       const res = await api.getPublicCase(caseId);
       setCaseData(res);
 
-      // If already solved, auto-submit/fetch resolution if accusation present
-      if (res.status === 'completed' && res.playerState?.accusation) {
-        // Trigger revelation fetch
+      // If already solved, auto-fetch solution reveal
+      if (res.status === 'completed') {
         api
-          .submitAccusation(caseId, res.playerState.accusation.suspectId)
+          .getCaseReveal(caseId)
           .then((rev) => setReveal(rev))
-          .catch(() => {});
+          .catch((err) => console.warn('Could not load completed reveal:', err));
       }
     } catch (err: any) {
       setError(err?.message || 'Failed to load investigation room.');
