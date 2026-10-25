@@ -2,6 +2,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { MysteryCase, type IMysteryCase } from '../../models/MysteryCase.js';
 import { MysteryConsistencyValidator } from '../mystery-validation/consistencyValidator.js';
 import { MockCaseGenerator } from './mockCaseGenerator.js';
+import { GeminiService } from '../ai/geminiService.js';
+import { EvidenceAssetService } from '../evidence-assets/evidenceAssetService.js';
 import {
   toPublicCaseDTO,
   toCaseStatusDTO,
@@ -58,37 +60,110 @@ export class CaseService {
   }
 
   /**
-   * Background generation pipeline (currently powered by Mock engine / ready for Gemini).
+   * Background generation pipeline coordinating Gemini AI or Mock Engine.
    */
   public static async runGenerationPipeline(caseId: string): Promise<void> {
     const caseDoc = await MysteryCase.findById(caseId);
     if (!caseDoc) return;
 
     try {
-      caseDoc.status = 'generating_outline';
-      caseDoc.generation.stage = 'Synthesizing scenario outline and canonical truth';
-      caseDoc.generation.progress = 30;
-      await caseDoc.save();
+      if (GeminiService.isAvailable()) {
+        console.log(`[CaseService] Launching Gemini generation for case ${caseId}`);
 
-      // Check if Gemini API key is available, else use deterministic mock generator
-      const mockData = MockCaseGenerator.generate({
-        ownerId: caseDoc.ownerId,
-        scenario: caseDoc.scenarioSeed,
-        genre: caseDoc.genre,
-        difficulty: caseDoc.difficulty,
-        setting: caseDoc.setting,
-      });
+        // Stage 1: Generate Outline
+        caseDoc.status = 'generating_outline';
+        caseDoc.generation.stage = 'Synthesizing scenario outline and canonical truth via Gemini';
+        caseDoc.generation.progress = 30;
+        await caseDoc.save();
 
-      caseDoc.status = 'generating_evidence';
-      caseDoc.generation.stage = 'Creating evidence artifacts and witness dossiers';
-      caseDoc.generation.progress = 60;
-      await caseDoc.save();
+        const outline = await GeminiService.generateOutline({
+          scenario: caseDoc.scenarioSeed,
+          genre: caseDoc.genre,
+          difficulty: caseDoc.difficulty,
+          setting: caseDoc.setting,
+        });
 
-      caseDoc.title = mockData.title || 'Case Investigation';
-      caseDoc.publicCase = mockData.publicCase as any;
-      caseDoc.privateSolution = mockData.privateSolution as any;
+        // Stage 2: Generate Evidence
+        caseDoc.status = 'generating_evidence';
+        caseDoc.generation.stage = 'Synthesizing evidence docket and witness testimonies';
+        caseDoc.generation.progress = 65;
+        await caseDoc.save();
 
-      // Validate mystery consistency before publishing
+        const evidencePacket = await GeminiService.generateEvidence(outline);
+
+        caseDoc.title = outline.title;
+        caseDoc.publicCase = {
+          premise: outline.premise,
+          incidentSummary: outline.incidentSummary,
+          incidentTime: outline.incidentTime,
+          briefing: outline.briefing,
+          suspects: outline.suspects.map((s) => ({
+            ...s,
+            portraitAsset: EvidenceAssetService.createPlaceholder({
+              type: 'suspect portrait',
+              title: s.name,
+              description: s.role,
+            }),
+          })),
+          evidence: evidencePacket.evidence.map((e) => ({
+            ...e,
+            asset:
+              e.type === 'camera_log'
+                ? {
+                    kind: 'placeholder',
+                    url: EvidenceAssetService.createCCTVSnapshotSVG(
+                      (e.content as any)?.cameraCode || 'CAM-01',
+                      (e.content as any)?.eventTime || '22:00',
+                      (e.content as any)?.location || 'Secured Area',
+                    ),
+                    altText: `CCTV simulation frame for ${e.title}`,
+                    status: 'ready',
+                  }
+                : EvidenceAssetService.createPlaceholder({
+                    type: e.type,
+                    title: e.title,
+                    description: e.description,
+                  }),
+            fictionalLabel: 'FICTIONAL_SIMULATION',
+          })),
+          timeline: evidencePacket.publicTimeline,
+        };
+
+        caseDoc.privateSolution = {
+          culpritSuspectId: outline.privateSolution.culpritSuspectId,
+          motive: outline.privateSolution.motive,
+          method: outline.privateSolution.method,
+          canonicalTimeline: outline.privateSolution.canonicalTimeline,
+          solutionExplanation: evidencePacket.solutionExplanation,
+          evidenceReasoning: evidencePacket.evidenceReasoning,
+          debunkedRedHerrings: evidencePacket.debunkedRedHerrings,
+        };
+      } else {
+        // Fallback to high-fidelity deterministic Mock Engine
+        caseDoc.status = 'generating_outline';
+        caseDoc.generation.stage = 'Synthesizing scenario outline and canonical truth';
+        caseDoc.generation.progress = 30;
+        await caseDoc.save();
+
+        const mockData = MockCaseGenerator.generate({
+          ownerId: caseDoc.ownerId,
+          scenario: caseDoc.scenarioSeed,
+          genre: caseDoc.genre,
+          difficulty: caseDoc.difficulty,
+          setting: caseDoc.setting,
+        });
+
+        caseDoc.status = 'generating_evidence';
+        caseDoc.generation.stage = 'Creating evidence artifacts and witness dossiers';
+        caseDoc.generation.progress = 60;
+        await caseDoc.save();
+
+        caseDoc.title = mockData.title || 'Case Investigation';
+        caseDoc.publicCase = mockData.publicCase as any;
+        caseDoc.privateSolution = mockData.privateSolution as any;
+      }
+
+      // Stage 3: Consistency Validation
       caseDoc.status = 'validating';
       caseDoc.generation.stage = 'Performing fair-play consistency validation';
       caseDoc.generation.progress = 85;
@@ -109,7 +184,7 @@ export class CaseService {
         return;
       }
 
-      // Success
+      // Success transition
       caseDoc.status = 'ready';
       caseDoc.generation.stage = 'Investigation ready';
       caseDoc.generation.progress = 100;

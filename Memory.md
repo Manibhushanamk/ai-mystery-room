@@ -5,17 +5,16 @@
 ---
 
 ## 1. Current State & Immediate Focus
-- **Current Phase:** Phase 3 — Gemini AI Generation Pipeline
-- **Current Task:** Integrating Gemini service adapter, multi-stage structured prompting (Outline -> Evidence Plan -> Evidence Synthesis), and asset card generators.
-- **Status:** Phase 1 and Phase 2 completed and verified with 14/14 automated tests passing and full workspace build green. Preparing Phase 3.
+- **Current Phase:** Phase 4 — Detective Investigation UI & Workspace
+- **Current Task:** Implementing frontend client library, scenario creation form, generation progress radar, 3-column detective workspace, specialized evidence card components, and investigator notebook.
+- **Status:** Phase 3 completed and verified. 20/20 automated tests passing across workspaces.
 
 ---
 
 ## 2. Recent Implementation Decisions & Architectural Changes
-- **Workspace Architecture Validated:** Successfully configured npm workspaces (`packages/shared`, `apps/api`, `apps/web`) with TypeScript, Zod, Mongoose, Vitest, and Tailwind CSS.
-- **Dual-Mode MongoDB Strategy Verified:** Tested with `mongodb-memory-server` fallback — boots dynamically without external service dependencies and successfully passed all Mongoose queries and Supertest suites.
-- **Zero-Leakage Security Confirmed:** Verified empirically in `cases.test.ts` that `GET /api/v1/cases/:id` never returns `privateSolution`, `culpritSuspectId`, or `motive` prior to accusation submission.
-- **Server-Authoritative Accusation Verified:** Confirmed `POST /api/v1/cases/:id/accusation` transitions state to `completed` and prevents duplicate accusations.
+- **Multi-Stage Gemini Pipeline:** Implemented `GeminiService` leveraging `@google/genai` with structured JSON parsing via Zod schemas, automated retries, and bounded fallback.
+- **Simulated Evidence Asset Engine:** Added `EvidenceAssetService` generating dynamic SVG CCTV camera frames, timestamps, and metadata.
+- **Dual AI Mode:** Seamless fallback ensures tests and local setups without live paid Gemini keys execute with 100% deterministic, fair-play mock case generation.
 
 ---
 

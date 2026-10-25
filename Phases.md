@@ -65,14 +65,14 @@ graph LR
 ## Phase 3: Gemini AI Generation Pipeline
 - **Objective:** Integrate Google Gemini Gen AI SDK with multi-stage structured prompting (Outline → Evidence Plan → Evidence Synthesis → Consistency Verification).
 - **Tasks:**
-  - [ ] Task 3.1: Implement `GeminiService` using `@google/genai` with model configuration (`GEMINI_MODEL`, `GEMINI_API_KEY`), timeout, and backoff retries.
-  - [ ] Task 3.2: Implement structured prompt templates for Outline Generation and Evidence Generation with strict Zod parsing.
-  - [ ] Task 3.3: Wire the generation pipeline coordinator with honest stage progression (`generating_outline`, `generating_evidence`, `validating`, `ready`).
-  - [ ] Task 3.4: Implement simulated evidence card asset service (rich SVG/HTML card generators for chat, camera logs, documents, and witness statements).
-  - [ ] Task 3.5: Add unit tests with mock Gemini fixtures testing schema parsing, malformed recovery, and consistency rejections.
+  - [x] Task 3.1: Implement `GeminiService` using `@google/genai` with model configuration (`GEMINI_MODEL`, `GEMINI_API_KEY`), timeout, and backoff retries.
+  - [x] Task 3.2: Implement structured prompt templates for Outline Generation and Evidence Generation with strict Zod parsing.
+  - [x] Task 3.3: Wire the generation pipeline coordinator with honest stage progression (`generating_outline`, `generating_evidence`, `validating`, `ready`).
+  - [x] Task 3.4: Implement simulated evidence card asset service (rich SVG/HTML card generators for chat, camera logs, documents, and witness statements).
+  - [x] Task 3.5: Add unit tests with mock Gemini fixtures testing schema parsing, malformed recovery, and consistency rejections.
 - **Verification:**
-  - Unit and mock integration tests prove end-to-end AI case generation and schema resilience.
-- **Status:** Pending
+  - Unit and mock integration tests prove end-to-end AI case generation and schema resilience (6 tests passed).
+- **Status:** Completed
 
 ---
 
