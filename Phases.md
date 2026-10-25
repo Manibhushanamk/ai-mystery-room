@@ -79,30 +79,30 @@ graph LR
 ## Phase 4: Detective Investigation UI & Workspace
 - **Objective:** Develop responsive, atmospheric detective workspace with case briefing, suspect roster, multi-format evidence viewer, and investigator notebook.
 - **Tasks:**
-  - [ ] Task 4.1: Implement Detective Theme system (Tailwind tokens, fonts, audio-visual atmosphere, badge components).
-  - [ ] Task 4.2: Build Landing Page & Scenario Creation form with genre, difficulty, setting, and evidence selectors.
-  - [ ] Task 4.3: Build Generation Status view with radar/progress stages and cancel/back navigation.
-  - [ ] Task 4.4: Build Investigation Workspace (3-column desktop / tabbed mobile layout with briefing, suspects, evidence docket, timeline).
-  - [ ] Task 4.5: Build specialized Evidence Viewers (Fictional Chat Log, CCTV Camera Log, Police Report/Document, Witness Interview, Photo Clue).
-  - [ ] Task 4.6: Build interactive features: Star/flag important evidence, live investigator notebook with auto-save.
-  - [ ] Task 4.7: Build "My Cases" dashboard for resuming and managing ongoing cases.
+  - [x] Task 4.1: Implement Detective Theme system (Tailwind tokens, fonts, audio-visual atmosphere, badge components).
+  - [x] Task 4.2: Build Landing Page & Scenario Creation form with genre, difficulty, setting, and evidence selectors.
+  - [x] Task 4.3: Build Generation Status view with radar/progress stages and cancel/back navigation.
+  - [x] Task 4.4: Build Investigation Workspace (3-column desktop / tabbed mobile layout with briefing, suspects, evidence docket, timeline).
+  - [x] Task 4.5: Build specialized Evidence Viewers (Fictional Chat Log, CCTV Camera Log, Police Report/Document, Witness Interview, Photo Clue).
+  - [x] Task 4.6: Build interactive features: Star/flag important evidence, live investigator notebook with auto-save.
+  - [x] Task 4.7: Build "My Cases" dashboard for resuming and managing ongoing cases.
 - **Verification:**
-  - Responsive visual inspection and interaction testing across desktop and mobile viewports.
-- **Status:** Pending
+  - Responsive visual inspection and interaction testing across desktop and mobile viewports (all 5 frontend tests passed, builds cleanly).
+- **Status:** Completed
 
 ---
 
 ## Phase 5: Accusation Dialog, Reveal Screen & Security Hardening
 - **Objective:** Deliver server-authoritative accusation submission, cited spoiler reveal, rate limiting, and security hardening.
 - **Tasks:**
-  - [ ] Task 5.1: Build high-stakes Accusation Confirmation Dialog (confirming single-shot choice).
-  - [ ] Task 5.2: Implement `POST /api/v1/cases/:id/accusation` backend endpoint with atomic state transition to `completed`.
-  - [ ] Task 5.3: Build Evidence-Cited Reveal Screen (Culprit portrait, motive breakdown, method details, chronological master sequence, debunked red herrings).
-  - [ ] Task 5.4: Implement security headers (Helmet), input sanitization, rate limiting on case creation, and session-scoped access controls.
-  - [ ] Task 5.5: Write Supertest security tests verifying IDOR protection, accusation immutability, and rejection of non-owner actions.
+  - [x] Task 5.1: Build high-stakes Accusation Confirmation Dialog (confirming single-shot choice).
+  - [x] Task 5.2: Implement `POST /api/v1/cases/:id/accusation` backend endpoint with atomic state transition to `completed`.
+  - [x] Task 5.3: Build Evidence-Cited Reveal Screen (Culprit portrait, motive breakdown, method details, chronological master sequence, debunked red herrings).
+  - [x] Task 5.4: Implement security headers (Helmet), input sanitization, rate limiting on case creation, and session-scoped access controls.
+  - [x] Task 5.5: Write Supertest security tests verifying IDOR protection, accusation immutability, and rejection of non-owner actions.
 - **Verification:**
-  - Accusation accurately reveals cited solution only upon submission; replay/review preserves solved state.
-- **Status:** Pending
+  - Accusation accurately reveals cited solution only upon submission; duplicate submission is rejected; replay/review preserves solved state.
+- **Status:** Completed
 
 ---
 

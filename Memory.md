@@ -5,16 +5,17 @@
 ---
 
 ## 1. Current State & Immediate Focus
-- **Current Phase:** Phase 4 — Detective Investigation UI & Workspace
-- **Current Task:** Implementing frontend client library, scenario creation form, generation progress radar, 3-column detective workspace, specialized evidence card components, and investigator notebook.
-- **Status:** Phase 3 completed and verified. 20/20 automated tests passing across workspaces.
+- **Current Phase:** Phase 6 — Playwright E2E Verification & Production Readiness
+- **Current Task:** Writing Playwright browser E2E test suite covering the full user journey (Landing → Case Creation → Generation Radar → Evidence Inspection → Note Taking → Accusation → Reveal) and auditing documentation.
+- **Status:** Phases 1–5 completed and verified. 24/24 automated tests passing across workspaces.
 
 ---
 
 ## 2. Recent Implementation Decisions & Architectural Changes
-- **Multi-Stage Gemini Pipeline:** Implemented `GeminiService` leveraging `@google/genai` with structured JSON parsing via Zod schemas, automated retries, and bounded fallback.
-- **Simulated Evidence Asset Engine:** Added `EvidenceAssetService` generating dynamic SVG CCTV camera frames, timestamps, and metadata.
-- **Dual AI Mode:** Seamless fallback ensures tests and local setups without live paid Gemini keys execute with 100% deterministic, fair-play mock case generation.
+- **Complete Investigation Workspace:** Delivered 3-column desktop layout (`SuspectList`, `EvidenceDocket`, `TimelineView`, `NotebookView`) with responsive mobile tabs.
+- **Rich Specialized Evidence Viewers:** Implemented `ChatViewer` (encrypted messaging thread), `CameraLogViewer` (CCTV telemetry + simulated SVG snapshot), `DocumentViewer` (stamped official report), and `WitnessStatementViewer` (deposition transcript with key assertions).
+- **High-Friction Accusation UX:** Built `AccusationDialog` modal with explicit one-shot warning, followed by cited `RevealScreen` that ties together motive, method, evidence chain, and debunked red herrings.
+- **Full Client Integration:** Connected `lib/api.ts` with transparent session management, optimistic notebook/clue marking updates, and case history dashboard.
 
 ---
 
