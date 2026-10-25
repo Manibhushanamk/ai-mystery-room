@@ -1,9 +1,16 @@
 import mongoose from 'mongoose';
 import { env } from './env.js';
+import { isNeonConfigured, initNeonDatabase, closeNeonDatabase } from './neonDatabase.js';
 
 let mongodInstance: any = null;
 
 export async function connectDatabase(): Promise<string> {
+  if (isNeonConfigured()) {
+    await initNeonDatabase();
+    console.log('[Database] Connected to Neon Serverless Postgres via DATABASE_URL');
+    return env.DATABASE_URL;
+  }
+
   if (mongoose.connection.readyState === 1) {
     return mongoose.connection.host;
   }
@@ -29,6 +36,10 @@ export async function connectDatabase(): Promise<string> {
 }
 
 export async function disconnectDatabase(): Promise<void> {
+  if (isNeonConfigured()) {
+    await closeNeonDatabase();
+  }
+
   if (mongoose.connection.readyState !== 0) {
     await mongoose.disconnect();
   }

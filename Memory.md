@@ -19,6 +19,10 @@
 - **Persistence & Solved Case Recovery:** Added `GET /api/v1/cases/:caseId/reveal` allowing detectives who solved a case to reload and inspect the solution breakdown without re-triggering the one-shot accusation.
 - **Playwright Test Suite:** Automated headless Chromium user journey verification with 5 visual screenshot captures stored in artifacts.
 
+- **Neon Serverless Postgres Database Adapter:** Integrated Neon Serverless Postgres via `pg` and `@neondatabase/serverless` using `CaseRepository`. When `DATABASE_URL` is set, the API automatically connects to Neon, creates the `mystery_cases` table schema, and stores cases in Neon Postgres.
+- **Groq LLM Pipeline Integration:** Implemented `GroqService` using `groq-sdk` with `llama-3.3-70b-versatile` and structured JSON output mode, providing ultra-fast mystery generation.
+- **GitHub Repository Established:** Created and pushed full codebase to GitHub repository: `https://github.com/Manibhushanamk/ai-mystery-room`.
+
 ---
 
 ## 3. Active Working Files & Touchpoints

@@ -12,8 +12,12 @@ const EnvSchema = z.object({
   WEB_ORIGIN: z.string().default('http://localhost:5173'),
   API_BASE_URL: z.string().default('http://localhost:4000/api/v1'),
   MONGODB_URI: z.string().default('mongodb://127.0.0.1:27017/ai_mystery_room'),
+  DATABASE_URL: z.string().optional().default(''), // Neon Serverless Postgres connection string
   GEMINI_API_KEY: z.string().optional().default(''),
   GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
+  GROQ_API_KEY: z.string().optional().default(''),
+  GROQ_MODEL: z.string().default('llama-3.3-70b-versatile'),
+  LLM_PROVIDER: z.enum(['groq', 'gemini', 'mock', 'auto']).default('auto'),
   SESSION_SECRET: z.string().default('dev_session_secret_ai_mystery_room'),
   COOKIE_SECURE: z.string().transform((v) => v === 'true').default('false'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),

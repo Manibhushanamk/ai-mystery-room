@@ -1,9 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
-import { MysteryCase, type IMysteryCase } from '../../models/MysteryCase.js';
+import { CaseRepository, type ICaseRecord } from '../../repositories/caseRepository.js';
 import { MysteryConsistencyValidator } from '../mystery-validation/consistencyValidator.js';
 import { MockCaseGenerator } from './mockCaseGenerator.js';
 import { GeminiService } from '../ai/geminiService.js';
+import { GroqService } from '../ai/groqService.js';
 import { EvidenceAssetService } from '../evidence-assets/evidenceAssetService.js';
+import { env } from '../../config/env.js';
 import {
   toPublicCaseDTO,
   toCaseStatusDTO,
@@ -28,55 +30,47 @@ export class CaseService {
     ownerId: string,
     input: CreateCaseRequest,
   ): Promise<CreateCaseResponse> {
-    const caseDoc = new MysteryCase({
+    const caseDoc = await CaseRepository.create({
       ownerId,
-      title: 'Generating Investigation...',
       scenarioSeed: input.scenario,
       genre: input.genre || 'classic_mystery',
       difficulty: input.difficulty || 'medium',
       setting: input.setting || '',
-      status: 'queued',
-      generation: {
-        stage: 'Queued in generation pool',
-        progress: 10,
-        attempts: 1,
-        startedAt: new Date(),
-      },
     });
-
-    await caseDoc.save();
 
     // Trigger generation asynchronously in background
-    this.runGenerationPipeline((caseDoc._id as any).toString()).catch((err) => {
-      console.error(`[CaseService] Background generation failed for case ${caseDoc._id}:`, err);
+    this.runGenerationPipeline(caseDoc.id).catch((err) => {
+      console.error(`[CaseService] Background generation failed for case ${caseDoc.id}:`, err);
     });
 
-    const caseId = (caseDoc._id as any).toString();
     return {
-      caseId,
+      caseId: caseDoc.id,
       status: caseDoc.status,
-      statusUrl: `/api/v1/cases/${caseId}/status`,
+      statusUrl: `/api/v1/cases/${caseDoc.id}/status`,
     };
   }
 
   /**
-   * Background generation pipeline coordinating Gemini AI or Mock Engine.
+   * Background generation pipeline coordinating Groq AI, Gemini AI, or Mock Engine.
    */
   public static async runGenerationPipeline(caseId: string): Promise<void> {
-    const caseDoc = await MysteryCase.findById(caseId);
+    const caseDoc = await CaseRepository.findById(caseId);
     if (!caseDoc) return;
 
     try {
-      if (GeminiService.isAvailable()) {
-        console.log(`[CaseService] Launching Gemini generation for case ${caseId}`);
+      const useGroq = (env.LLM_PROVIDER === 'groq' || env.LLM_PROVIDER === 'auto') && GroqService.isAvailable();
+      const useGemini = (env.LLM_PROVIDER === 'gemini' || env.LLM_PROVIDER === 'auto') && GeminiService.isAvailable();
+
+      if (useGroq) {
+        console.log(`[CaseService] Launching Groq generation for case ${caseId} (model: ${env.GROQ_MODEL})`);
 
         // Stage 1: Generate Outline
         caseDoc.status = 'generating_outline';
-        caseDoc.generation.stage = 'Synthesizing scenario outline and canonical truth via Gemini';
+        caseDoc.generation.stage = `Synthesizing scenario outline and canonical truth via Groq (${env.GROQ_MODEL})`;
         caseDoc.generation.progress = 30;
         await caseDoc.save();
 
-        const outline = await GeminiService.generateOutline({
+        const outline = await GroqService.generateOutline({
           scenario: caseDoc.scenarioSeed,
           genre: caseDoc.genre,
           difficulty: caseDoc.difficulty,
@@ -85,14 +79,16 @@ export class CaseService {
 
         // Stage 2: Generate Evidence
         caseDoc.status = 'generating_evidence';
-        caseDoc.generation.stage = 'Synthesizing evidence docket and witness testimonies';
+        caseDoc.generation.stage = 'Synthesizing evidence docket and witness testimonies via Groq';
         caseDoc.generation.progress = 65;
         await caseDoc.save();
 
-        const evidencePacket = await GeminiService.generateEvidence(outline);
+        const evidencePacket = await GroqService.generateEvidence(outline);
 
-        caseDoc.title = outline.title;
+        (caseDoc as any).title = outline.title;
         caseDoc.publicCase = {
+          title: outline.title,
+          summary: outline.incidentSummary,
           premise: outline.premise,
           incidentSummary: outline.incidentSummary,
           incidentTime: outline.incidentTime,
@@ -136,7 +132,80 @@ export class CaseService {
           canonicalTimeline: outline.privateSolution.canonicalTimeline,
           solutionExplanation: evidencePacket.solutionExplanation,
           evidenceReasoning: evidencePacket.evidenceReasoning,
-          debunkedRedHerrings: evidencePacket.debunkedRedHerrings,
+          debunkedRedHerrings: evidencePacket.debunkedRedHerrings || [],
+        };
+      } else if (useGemini) {
+        console.log(`[CaseService] Launching Gemini generation for case ${caseId}`);
+
+        // Stage 1: Generate Outline
+        caseDoc.status = 'generating_outline';
+        caseDoc.generation.stage = 'Synthesizing scenario outline and canonical truth via Gemini';
+        caseDoc.generation.progress = 30;
+        await caseDoc.save();
+
+        const outline = await GeminiService.generateOutline({
+          scenario: caseDoc.scenarioSeed,
+          genre: caseDoc.genre,
+          difficulty: caseDoc.difficulty,
+          setting: caseDoc.setting,
+        });
+
+        // Stage 2: Generate Evidence
+        caseDoc.status = 'generating_evidence';
+        caseDoc.generation.stage = 'Synthesizing evidence docket and witness testimonies';
+        caseDoc.generation.progress = 65;
+        await caseDoc.save();
+
+        const evidencePacket = await GeminiService.generateEvidence(outline);
+
+        (caseDoc as any).title = outline.title;
+        caseDoc.publicCase = {
+          title: outline.title,
+          summary: outline.incidentSummary,
+          premise: outline.premise,
+          incidentSummary: outline.incidentSummary,
+          incidentTime: outline.incidentTime,
+          briefing: outline.briefing,
+          suspects: outline.suspects.map((s) => ({
+            ...s,
+            portraitAsset: EvidenceAssetService.createPlaceholder({
+              type: 'suspect portrait',
+              title: s.name,
+              description: s.role,
+            }),
+          })),
+          evidence: evidencePacket.evidence.map((e) => ({
+            ...e,
+            asset:
+              e.type === 'camera_log'
+                ? {
+                    kind: 'placeholder',
+                    url: EvidenceAssetService.createCCTVSnapshotSVG(
+                      (e.content as any)?.cameraCode || 'CAM-01',
+                      (e.content as any)?.eventTime || '22:00',
+                      (e.content as any)?.location || 'Secured Area',
+                    ),
+                    altText: `CCTV simulation frame for ${e.title}`,
+                    status: 'ready',
+                  }
+                : EvidenceAssetService.createPlaceholder({
+                    type: e.type,
+                    title: e.title,
+                    description: e.description,
+                  }),
+            fictionalLabel: 'FICTIONAL_SIMULATION',
+          })),
+          timeline: evidencePacket.publicTimeline,
+        };
+
+        caseDoc.privateSolution = {
+          culpritSuspectId: outline.privateSolution.culpritSuspectId,
+          motive: outline.privateSolution.motive,
+          method: outline.privateSolution.method,
+          canonicalTimeline: outline.privateSolution.canonicalTimeline,
+          solutionExplanation: evidencePacket.solutionExplanation,
+          evidenceReasoning: evidencePacket.evidenceReasoning,
+          debunkedRedHerrings: evidencePacket.debunkedRedHerrings || [],
         };
       } else {
         // Fallback to high-fidelity deterministic Mock Engine
@@ -149,7 +218,7 @@ export class CaseService {
           ownerId: caseDoc.ownerId,
           scenario: caseDoc.scenarioSeed,
           genre: caseDoc.genre,
-          difficulty: caseDoc.difficulty,
+          difficulty: (caseDoc.difficulty as 'easy' | 'medium' | 'hard') || 'medium',
           setting: caseDoc.setting,
         });
 
@@ -158,7 +227,7 @@ export class CaseService {
         caseDoc.generation.progress = 60;
         await caseDoc.save();
 
-        caseDoc.title = mockData.title || 'Case Investigation';
+        (caseDoc as any).title = mockData.title || 'Case Investigation';
         caseDoc.publicCase = mockData.publicCase as any;
         caseDoc.privateSolution = mockData.privateSolution as any;
       }
@@ -170,28 +239,29 @@ export class CaseService {
       await caseDoc.save();
 
       const validation = MysteryConsistencyValidator.validate({
-        difficulty: caseDoc.difficulty,
-        publicCase: caseDoc.publicCase,
-        privateSolution: caseDoc.privateSolution,
+        difficulty: (caseDoc.difficulty as 'easy' | 'medium' | 'hard') || 'medium',
+        publicCase: caseDoc.publicCase as any,
+        privateSolution: caseDoc.privateSolution as any,
       });
 
       if (!validation.valid) {
         console.error('[CaseService] Consistency validation failed:', validation.errors);
         caseDoc.status = 'failed';
-        caseDoc.generation.stage = 'Generation failed consistency checks';
-        caseDoc.generation.lastErrorCode = validation.errors.join('; ');
+        caseDoc.generation.stage = 'Failed consistency validation';
+        caseDoc.generation.lastErrorCode = 'CONSISTENCY_CHECK_FAILED';
         await caseDoc.save();
         return;
       }
 
-      // Success transition
+      // Stage 4: Mark Ready
       caseDoc.status = 'ready';
-      caseDoc.generation.stage = 'Investigation ready';
+      caseDoc.generation.stage = 'Investigation dossier compiled and ready';
       caseDoc.generation.progress = 100;
-      caseDoc.generation.completedAt = new Date();
       await caseDoc.save();
+
+      console.log(`[CaseService] Case ${caseId} is now ready for investigation.`);
     } catch (err: any) {
-      console.error(`[CaseService] Pipeline error for case ${caseId}:`, err);
+      console.error(`[CaseService] Pipeline execution error for case ${caseId}:`, err);
       caseDoc.status = 'failed';
       caseDoc.generation.stage = 'Internal generation error';
       caseDoc.generation.lastErrorCode = 'GENERATION_ERROR';
@@ -203,7 +273,7 @@ export class CaseService {
    * Retrieves case generation status for polling.
    */
   public static async getCaseStatus(caseId: string, ownerId: string): Promise<CaseStatusResponse> {
-    const caseDoc = await MysteryCase.findById(caseId);
+    const caseDoc = await CaseRepository.findById(caseId);
     if (!caseDoc) {
       const error: any = new Error('Case not found');
       error.statusCode = 404;
@@ -225,7 +295,7 @@ export class CaseService {
    * Retrieves the public case for the investigation room (strictly no private solution!).
    */
   public static async getPublicCase(caseId: string, ownerId: string): Promise<PublicCaseResponse> {
-    const caseDoc = await MysteryCase.findById(caseId);
+    const caseDoc = await CaseRepository.findById(caseId);
     if (!caseDoc) {
       const error: any = new Error('Case not found');
       error.statusCode = 404;
@@ -251,7 +321,7 @@ export class CaseService {
     ownerId: string,
     input: UpdatePlayerStateRequest,
   ): Promise<PublicCaseResponse> {
-    const caseDoc = await MysteryCase.findById(caseId);
+    const caseDoc = await CaseRepository.findById(caseId);
     if (!caseDoc) {
       const error: any = new Error('Case not found');
       error.statusCode = 404;
@@ -291,7 +361,7 @@ export class CaseService {
     ownerId: string,
     suspectId: string,
   ): Promise<SolutionReveal> {
-    const caseDoc = await MysteryCase.findById(caseId);
+    const caseDoc = await CaseRepository.findById(caseId);
     if (!caseDoc) {
       const error: any = new Error('Case not found');
       error.statusCode = 404;
@@ -321,7 +391,7 @@ export class CaseService {
     }
 
     // Verify suspect belongs to case
-    const suspectExists = caseDoc.publicCase.suspects.some((s) => s.id === suspectId);
+    const suspectExists = caseDoc.publicCase.suspects.some((s: any) => s.id === suspectId);
     if (!suspectExists) {
       const error: any = new Error(`Suspect ID "${suspectId}" is not in this case`);
       error.statusCode = 400;
@@ -336,7 +406,7 @@ export class CaseService {
     caseDoc.playerState.accusation = {
       suspectId,
       submittedAt: new Date(),
-      correct: isCorrect,
+      isCorrect,
     };
 
     await caseDoc.save();
@@ -348,7 +418,7 @@ export class CaseService {
    * Retrieves the solution reveal for a completed case.
    */
   public static async getCaseReveal(caseId: string, ownerId: string): Promise<SolutionReveal> {
-    const caseDoc = await MysteryCase.findById(caseId);
+    const caseDoc = await CaseRepository.findById(caseId);
     if (!caseDoc) {
       const error: any = new Error('Case not found');
       error.statusCode = 404;
@@ -381,13 +451,11 @@ export class CaseService {
     limit = 20,
   ): Promise<ListCasesResponse> {
     const safeLimit = Math.min(Math.max(limit, 1), 50);
-    const cases = await MysteryCase.find({ ownerId })
-      .sort({ createdAt: -1 })
-      .limit(safeLimit);
+    const { cases, total } = await CaseRepository.findUserCases(ownerId, safeLimit);
 
     return {
       cases: cases.map((c) => toCaseSummaryDTO(c)),
-      total: await MysteryCase.countDocuments({ ownerId }),
+      total,
     };
   }
 
@@ -395,7 +463,7 @@ export class CaseService {
    * Deletes a case owned by the user.
    */
   public static async deleteCase(caseId: string, ownerId: string): Promise<void> {
-    const caseDoc = await MysteryCase.findById(caseId);
+    const caseDoc = await CaseRepository.findById(caseId);
     if (!caseDoc) {
       const error: any = new Error('Case not found');
       error.statusCode = 404;
@@ -410,6 +478,6 @@ export class CaseService {
       throw error;
     }
 
-    await MysteryCase.findByIdAndDelete(caseId);
+    await CaseRepository.deleteById(caseId);
   }
 }

@@ -90,8 +90,11 @@ cp .env.example .env
 | `PORT` | `4000` | Backend API HTTP server port |
 | `WEB_ORIGIN` | `http://localhost:5173` | Allowed CORS origin for the Vite frontend |
 | `API_BASE_URL` | `http://localhost:4000/api/v1` | Public API base path |
-| `MONGODB_URI` | `mongodb://127.0.0.1:27017/ai_mystery_room` | MongoDB connection string. Automatically falls back to in-memory MongoDB (`mongodb-memory-server`) if unreachable. |
-| `GEMINI_API_KEY` | *(Optional)* | Google Gemini API key. If omitted, the server uses the built-in deterministic Mock Mystery Engine. |
+| `DATABASE_URL` | *(Optional)* | Neon Serverless Postgres connection string (`postgresql://...`). When set, automatically creates the schema on Neon and uses Neon for all persistence. |
+| `MONGODB_URI` | `mongodb://127.0.0.1:27017/ai_mystery_room` | MongoDB connection string. Used when `DATABASE_URL` is omitted (falls back to in-memory MongoDB automatically). |
+| `GROQ_API_KEY` | *(Optional)* | Groq Cloud API key for ultra-fast mystery generation using `llama-3.3-70b-versatile`. |
+| `GROQ_MODEL` | `llama-3.3-70b-versatile` | Groq LLM model name. |
+| `GEMINI_API_KEY` | *(Optional)* | Google Gemini API key. Used when Groq is not configured. |
 | `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model for outline and evidence synthesis |
 | `SESSION_SECRET` | `dev_session_secret` | Secret key used for signing session cookies |
 | `COOKIE_SECURE` | `false` | Set to `true` when serving behind HTTPS in production |
